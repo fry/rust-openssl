@@ -877,6 +877,26 @@ impl BigNumRef {
         v
     }
 
+    /// Returns a big-endian byte vector representation of the absolute value of `self`
+    /// padded with leading zeros to a length of `len`.
+    ///
+    /// ```
+    /// # use openssl::bn::BigNum;
+    /// let r = BigNum::from_u32(4543).unwrap();
+    ///
+    /// let r_vec = r.to_vec_padded(100);
+    /// assert_eq!(r_vec.len(), 100);
+    /// ```
+    pub fn to_vec_padded(&self, len: i32) -> Result<Vec<u8>, ErrorStack> {
+        let mut v = Vec::with_capacity(len as usize);
+        unsafe {
+            cvt(ffi::BN_bn2binpad(self.as_ptr(), v.as_mut_ptr(), len)).map(|_| {
+                v.set_len(len as usize);
+                v
+            })
+        }
+    }
+
     /// Returns a decimal string representation of `self`.
     ///
     /// ```
@@ -1374,6 +1394,18 @@ mod tests {
     fn test_to_from_slice() {
         let v0 = BigNum::from_u32(10203004).unwrap();
         let vec = v0.to_vec();
+        let v1 = BigNum::from_slice(&vec).unwrap();
+
+        assert!(v0 == v1);
+    }
+
+    #[test]
+    fn test_to_padded() {
+        let v0 = BigNum::from_u32(10203004).unwrap();
+        let vec = v0.to_vec_padded(100).unwrap();
+
+        assert!(vec.len() == 100);
+
         let v1 = BigNum::from_slice(&vec).unwrap();
 
         assert!(v0 == v1);
